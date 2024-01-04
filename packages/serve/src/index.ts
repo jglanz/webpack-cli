@@ -1,5 +1,5 @@
 import { type Compiler, type cli } from "webpack";
-import { type IWebpackCLI, type WebpackDevServerOptions } from "webpack-cli";
+import { type IWebpackCLI, WebpackCompiler, type WebpackDevServerOptions } from "webpack-cli";
 
 const WEBPACK_PACKAGE = process.env.WEBPACK_PACKAGE || "webpack";
 const WEBPACK_DEV_SERVER_PACKAGE = process.env.WEBPACK_DEV_SERVER_PACKAGE || "webpack-dev-server";
@@ -67,6 +67,7 @@ class ServeCommand {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const processors: Array<(opts: Record<string, any>) => void> = [];
+
         for (const optionName in options) {
           const kebabedOption = cli.toKebabCase(optionName);
           const isBuiltInOption = builtInOptions.find(
@@ -90,6 +91,7 @@ class ServeCommand {
             devServerCLIOptions[optionName] = options[optionName];
           }
         }
+
         for (const processor of processors) {
           processor(devServerCLIOptions);
         }
@@ -104,11 +106,19 @@ class ServeCommand {
         };
 
         webpackCLIOptions.isWatchingLikeCommand = true;
+
         const compiler = await cli.createCompiler(webpackCLIOptions);
 
         if (!compiler) {
           return;
         }
+
+        if ((compiler.options as WebpackDevServerOptions).devServer === undefined) {
+          await cli.runWebpack(webpackCLIOptions as any, false);
+
+          return;
+        }
+
         const servers: (typeof DevServer)[] = [];
 
         if (cli.needWatchStdin(compiler)) {
@@ -205,6 +215,7 @@ class ServeCommand {
           }
 
           const devServerOptions: WebpackDevServerOptions = result as WebpackDevServerOptions;
+
           if (devServerOptions.port) {
             const portNumber = Number(devServerOptions.port);
 
