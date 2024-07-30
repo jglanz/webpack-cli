@@ -83,6 +83,23 @@ interface Information {
   npmPackages?: string | string[];
 }
 
+enum WebpackModuleType {
+  unknown = "unknown",
+  commonjs = "commonjs",
+  esm = "esm",
+}
+
+const DefaultModuleType = ((): WebpackModuleType => {
+  const moduleTypeStr: string =
+    process.env.WEBPACK_CLI_FORCE_MODULE_TYPE ?? WebpackModuleType.unknown;
+  for (const [type, typeStr] of Object.keys(WebpackModuleType)) {
+    if (moduleTypeStr.toLowerCase() == typeStr.toLowerCase()) {
+      return type as WebpackModuleType;
+    }
+  }
+  return WebpackModuleType.unknown;
+})();
+
 class WebpackCLI implements IWebpackCLI {
   colors: WebpackCLIColors;
   logger: WebpackCLILogger;
@@ -339,12 +356,12 @@ class WebpackCLI implements IWebpackCLI {
   async tryRequireThenImport<T>(
     module: ModuleName,
     handleError = true,
-    moduleType: "unknown" | "commonjs" | "esm" = "unknown",
+    moduleType: WebpackModuleType = DefaultModuleType,
   ): Promise<T> {
     let result;
 
     switch (moduleType) {
-      case "unknown": {
+      case WebpackModuleType.unknown: {
         try {
           result = require(module);
         } catch (error) {
@@ -373,7 +390,7 @@ class WebpackCLI implements IWebpackCLI {
         }
         break;
       }
-      case "commonjs": {
+      case WebpackModuleType.commonjs: {
         try {
           result = require(module);
         } catch (error) {
@@ -386,7 +403,7 @@ class WebpackCLI implements IWebpackCLI {
         }
         break;
       }
-      case "esm": {
+      case WebpackModuleType.esm: {
         try {
           const dynamicImportLoader: null | DynamicImport<T> =
             require("./utils/dynamic-import-loader")();
@@ -1843,16 +1860,16 @@ class WebpackCLI implements IWebpackCLI {
 
       type LoadConfigOption = PotentialPromise<WebpackConfiguration>;
 
-      let moduleType: "unknown" | "commonjs" | "esm" = "unknown";
+      let moduleType = WebpackModuleType.unknown;
 
       switch (ext) {
         case ".cjs":
         case ".cts":
-          moduleType = "commonjs";
+          moduleType = WebpackModuleType.commonjs;
           break;
         case ".mjs":
         case ".mts":
-          moduleType = "esm";
+          moduleType = WebpackModuleType.esm;
           break;
       }
 
