@@ -1860,7 +1860,7 @@ class WebpackCLI implements IWebpackCLI {
 
       type LoadConfigOption = PotentialPromise<WebpackConfiguration>;
 
-      let moduleType = WebpackModuleType.unknown;
+      let moduleType = DefaultModuleType;
 
       switch (ext) {
         case ".cjs":
